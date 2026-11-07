@@ -1,0 +1,143 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --background: #f7f6f3;
+  --surface: #ffffff;
+  --surface-soft: #f1efeb;
+  --foreground: #191919;
+  --muted: #77736d;
+  --line: #e7e2d9;
+  --red: #c92332;
+  --red-hover: #a91c29;
+  --gold: #d6a84b;
+  --gold-soft: #f8edcf;
+  --success: #16834a;
+  --danger: #c92332;
+  --shadow: 0 12px 35px rgba(25, 25, 25, 0.07);
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #111111;
+  --surface: #1c1c1c;
+  --surface-soft: #262626;
+  --foreground: #f5f1e9;
+  --muted: #aaa39a;
+  --line: #38342e;
+  --red: #e33a48;
+  --red-hover: #c92332;
+  --gold: #e1b75e;
+  --gold-soft: #3b3020;
+  --success: #43b879;
+  --danger: #ef5360;
+  --shadow: 0 12px 35px rgba(0, 0, 0, 0.22);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--background);
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+input,
+textarea,
+select {
+  color: var(--foreground);
+}
+
+::selection {
+  background: var(--gold);
+  color: #191919;
+}
+
+.general-surface {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+.general-muted {
+  color: var(--muted);
+}
+
+.general-red {
+  background: var(--red);
+  color: white;
+}
+
+.general-red:hover {
+  background: var(--red-hover);
+}
+
+.general-gold {
+  color: var(--gold);
+}
+
+.general-input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--foreground);
+  padding: 12px 14px;
+  outline: none;
+}
+
+.general-input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 20%, transparent);
+}
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-area {
+    display: block !important;
+    color: black !important;
+    background: white !important;
+    box-shadow: none !important;
+    border: 0 !important;
+  }
+}
