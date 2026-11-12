@@ -17,14 +17,21 @@ type Food = {
   categoryId: string | null;
   category: string;
   price: number;
+  hasSizes: boolean;
+  priceOnePerson: number | null;
+  priceTwoPerson: number | null;
+  priceThreePerson: number | null;
   description: string;
   imageUrl: string | null;
   isAvailable: boolean;
 };
 
+type FoodSize = "one" | "two" | "three" | "regular";
 type CartItem = {
   food: Food;
   quantity: number;
+  size: FoodSize;
+  unitPrice: number;
 };
 
 type TrackedOrder = {
@@ -52,10 +59,12 @@ export default function Home() {
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [favoritesReady, setFavoritesReady] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [selectedSizes, setSelectedSizes] = useState<Record<string, FoodSize>>({});
   const [cartOpen, setCartOpen] = useState(false);
 
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
   const [clubOpen, setClubOpen] = useState(false);
   const [clubPhone, setClubPhone] = useState("");
   const [clubMessage, setClubMessage] = useState("");
@@ -89,6 +98,8 @@ export default function Home() {
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
+      setCustomerName(localStorage.getItem("foodflow_customer_name") || "");
+      setCustomerPhone(localStorage.getItem("foodflow_customer_phone") || "");
       if (localStorage.getItem("general_food_quiz_dismissed") !== "yes") {
         timer = setTimeout(() => setFoodQuizOpen(true), 900);
       }
@@ -245,7 +256,7 @@ export default function Home() {
           await supabase
             .from("foods")
             .select(
-              "id, name, category_id, price, description, image_url, is_available"
+              "id, name, category_id, price, price_one_person, price_two_person, price_three_person, has_sizes, description, image_url, is_available"
             )
             .eq("restaurant_id", restaurant.id)
             .eq("is_active", true)
@@ -271,6 +282,10 @@ export default function Home() {
             categoryMap.get(food.category_id) ??
             (language === "fa" ? "بدون دسته‌بندی" : "Uncategorized"),
           price: Number(food.price),
+          hasSizes: Boolean(food.has_sizes) || /پیتزا|pizza/i.test(`${food.name ?? ""} ${categoryMap.get(food.category_id) ?? ""}`),
+          priceOnePerson: food.price_one_person == null ? null : Number(food.price_one_person),
+          priceTwoPerson: food.price_two_person == null ? null : Number(food.price_two_person),
+          priceThreePerson: food.price_three_person == null ? null : Number(food.price_three_person),
           description: food.description ?? "",
           imageUrl: food.image_url,
           isAvailable: food.is_available,
@@ -328,7 +343,7 @@ export default function Home() {
   );
 
   const totalPrice = cartItems.reduce(
-    (sum, item) => sum + item.food.price * item.quantity,
+    (sum, item) => sum + item.unitPrice * item.quantity,
     0
   );
 
@@ -350,33 +365,44 @@ export default function Home() {
     document.getElementById("street-menu")?.scrollIntoView({ behavior: "smooth" });
   }
 
-  function addToCart(food: Food) {
+  function priceForSize(food: Food, size: FoodSize) {
+    if (!food.hasSizes) return food.price;
+    if (size === "one") return food.priceOnePerson ?? food.price;
+    if (size === "three") return food.priceThreePerson ?? food.price;
+    return food.priceTwoPerson ?? food.price;
+  }
+
+  function sizeLabel(size: FoodSize) {
+    if (size === "one") return t("یک‌نفره", "1 person");
+    if (size === "two") return t("دونفره", "2 people");
+    if (size === "three") return t("سه‌نفره", "3 people");
+    return t("معمولی", "Regular");
+  }
+
+  function addToCart(food: Food, requestedSize?: FoodSize) {
     if (!food.isAvailable) return;
+    const size = food.hasSizes ? (requestedSize ?? selectedSizes[food.id] ?? "two") : "regular";
+    const unitPrice = priceForSize(food, size);
 
     setCartItems((currentItems) => {
-      const existingItem = currentItems.find(
-        (item) => item.food.id === food.id
-      );
-
+      const existingItem = currentItems.find((item) => item.food.id === food.id && item.size === size);
       if (existingItem) {
         return currentItems.map((item) =>
-          item.food.id === food.id
+          item.food.id === food.id && item.size === size
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       }
-
-      return [...currentItems, { food, quantity: 1 }];
+      return [...currentItems, { food, quantity: 1, size, unitPrice }];
     });
-
     setCartOpen(true);
   }
 
-  function decreaseQuantity(foodId: string) {
+  function decreaseQuantity(foodId: string, size: FoodSize) {
     setCartItems((currentItems) =>
       currentItems
         .map((item) =>
-          item.food.id === foodId
+          item.food.id === foodId && item.size === size
             ? { ...item, quantity: item.quantity - 1 }
             : item
         )
@@ -391,6 +417,16 @@ export default function Home() {
 
     if (!customerName.trim()) {
       setFormError(t("نام خود را وارد کن.", "Please enter your name."));
+      return;
+    }
+
+    const normalizedPhone = customerPhone
+      .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+      .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+      .replace(/\D/g, "");
+
+    if (!/^09\d{9}$/.test(normalizedPhone)) {
+      setFormError(t("شماره موبایل معتبر را وارد کن (مثلاً 09123456789).", "Enter a valid mobile number (e.g. 09123456789)."));
       return;
     }
 
@@ -412,13 +448,16 @@ export default function Home() {
       const items = cartItems.map((item) => ({
         id: item.food.id,
         quantity: item.quantity,
+        size: item.size,
+        size_label: item.food.hasSizes ? sizeLabel(item.size) : null,
+        unit_price: item.unitPrice,
       }));
 
       const { data, error } = await supabase.rpc(
         "create_foodflow_order",
         {
           p_customer_name: customerName.trim(),
-          p_customer_phone: null,
+          p_customer_phone: normalizedPhone,
           p_customer_note: customerNote.trim(),
           p_items: items,
           p_table_id: null,
@@ -442,9 +481,9 @@ export default function Home() {
       setSavedTrackingToken(result.tracking_token);
       try {
         localStorage.setItem("foodflow_customer_name", customerName.trim());
+        localStorage.setItem("foodflow_customer_phone", normalizedPhone);
         localStorage.setItem("foodflow_last_order_number", result.order_number);
         localStorage.setItem("foodflow_tracking_token", result.tracking_token);
-        localStorage.removeItem("foodflow_customer_phone");
       } catch (storageError) {
         console.warn("Could not save order details in this browser:", storageError);
       }
@@ -612,11 +651,13 @@ export default function Home() {
           font-family: "Vazirmatn", sans-serif;
         }
         .ff-header {
-          background: rgba(248,244,236,.97) !important;
+          position: relative; isolation: isolate; overflow: hidden;
+          background: linear-gradient(110deg,rgba(255,250,241,.99),rgba(248,239,225,.97) 55%,rgba(255,250,241,.99)) !important;
           color: var(--g-ink) !important;
           border-color: #e5d9c9 !important;
           box-shadow: 0 5px 24px rgba(56,38,25,.07);
         }
+        .ff-header:before { content:""; position:absolute; z-index:-1; inset:0; pointer-events:none; opacity:.55; background: radial-gradient(ellipse at 8% 50%,rgba(196,154,85,.20),transparent 32%), radial-gradient(ellipse at 92% 0%,rgba(120,31,53,.12),transparent 30%); }
         .ff-header nav { color: #51463e !important; }
         .ff-header nav a:hover { color: #781f35 !important; }
         .ff-brand { text-decoration: none; }
@@ -627,7 +668,11 @@ export default function Home() {
           background: linear-gradient(145deg,#8b2942,#501323);
           box-shadow: 0 5px 14px #781f3525;
         }
+        .ff-logo-mark { position:relative; overflow:hidden; outline:1px solid #c49a5570; outline-offset:3px; }
+        .ff-logo-mark:after { content:""; position:absolute; width:34px; height:80px; top:-14px; left:-45px; transform:rotate(28deg); background:linear-gradient(90deg,transparent,#ffffff70,transparent); animation:ff-logo-shine 5s ease-in-out infinite; }
+        @keyframes ff-logo-shine { 0%,65%,100% { left:-45px; } 82% { left:85px; } }
         .ff-logo-mark span { color: #f2dcae; font: 900 34px/1 Georgia,serif; }
+        .ff-logo-mark i { position:absolute; top:5px; right:7px; color:#f3d9a4; font-size:11px; font-style:normal; }
         .ff-brand-caption { display:block; color:#a77b35; font-size:9px; font-weight:900; letter-spacing:.16em; }
         .ff-brand-title { display:block; color:#302823; font-size:19px; font-weight:900; white-space:nowrap; }
         .ff-header-action {
@@ -1013,7 +1058,7 @@ export default function Home() {
       <header className="ff-header sticky top-0 z-30 border-b backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-8 lg:px-12">
           <a href="#" className="ff-brand flex min-w-0 items-center gap-3">
-            <span className="ff-logo-mark" aria-hidden="true"><span>G</span></span>
+            <span className="ff-logo-mark" aria-hidden="true"><span>G</span><i>✦</i></span>
             <span className="min-w-0">
               <span className="ff-brand-caption">GENERAL FAST FOOD</span>
               <span className="ff-brand-title">{t("فست‌فود ژنرال", "GENERAL")}</span>
@@ -1021,6 +1066,7 @@ export default function Home() {
           </a>
           <nav className="ff-header-nav order-3 flex w-full items-center justify-center gap-2 sm:gap-3 md:order-none md:w-auto">
             <a href="#street-menu" className="ff-nav-link">{t("منو", "Menu")}</a>
+            <a href="#restaurant-info" className="ff-nav-link">{t("اطلاعات مجموعه", "About us")}</a>
             <button type="button" onClick={() => { setClubMessage(""); setClubOpen(true); }} className="ff-header-action ff-club-button">
               <span aria-hidden="true">✦</span>{t("باشگاه مشتریان", "Loyalty club")}
             </button>
@@ -1039,61 +1085,23 @@ export default function Home() {
       </header>
 
       <div className="mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-12">
-        {/* GENERAL IMMERSIVE HERO */}
+        {/* GENERAL PIZZA HERO BANNER */}
         <section className="ff-hero relative mt-0 overflow-hidden rounded-none bg-[#151515] text-white shadow-[0_35px_100px_rgba(0,0,0,.20)] sm:mt-5 sm:rounded-[2rem] lg:rounded-[2.5rem]">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_78%_42%,rgba(191,52,35,.38),transparent_38%),radial-gradient(ellipse_at_0%_100%,rgba(111,24,35,.55),transparent_42%)]"/>
-          <div className="absolute -right-24 -top-28 h-[32rem] w-[32rem] rounded-full border border-white/[.07]"/>
-          <div className="absolute -right-8 -top-12 h-[25rem] w-[25rem] rounded-full border border-white/[.07]"/>
-          <div className="relative grid min-h-[690px] items-center gap-5 px-6 py-12 sm:px-10 lg:grid-cols-[.92fr_1.08fr] lg:px-16 lg:py-16">
-            <div className="relative z-10 max-w-2xl ff-reveal">
-              <div className="mb-7 inline-flex items-center gap-3 rounded-full border border-[#f0b45d]/30 bg-[#f0b45d]/10 px-4 py-2 text-[10px] font-black tracking-[.2em] text-[#ffc66f]">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-[#ff5a36]"/> {t("اینجا جای طعم‌های معمولی نیست","NOT BUILT TO BLEND IN")}
-              </div>
-              <h2 className="max-w-3xl text-[3.4rem] font-black leading-[1.02] tracking-[-.07em] sm:text-7xl lg:text-[6.3rem]">
-                {t("گرسنگی؟","HUNGRY?")}<br/>
-                <span className="text-[#ff5738]">{t("ژنرال","MEET")} </span>
-                <span className="ff-display font-normal italic text-[#f6d8a9]">{t("رو صدا کن.","THE GENERAL.")}</span>
-              </h2>
-              <p className="mt-7 max-w-lg text-sm leading-8 text-white/65 sm:text-base">
-                {t("یه انتخاب درست، یه طعم فراموش‌نشدنی. غذای مورد علاقه‌ات رو انتخاب کن؛ ما با کیفیت و عشق آماده‌اش می‌کنیم.","Big flavor. Serious cravings. Pick your favorite and let us make it unforgettable.")}
-              </p>
-              <div className="mt-9 flex flex-wrap items-center gap-4">
-                <button type="button" onClick={() => document.getElementById("street-menu")?.scrollIntoView({behavior:"smooth"})} className="group rounded-full bg-[#ff5738] px-7 py-4 text-sm font-black text-white shadow-[0_12px_35px_rgba(255,87,56,.28)] transition hover:-translate-y-1 hover:bg-[#ff704f]">
-                  {t("بزن بریم سراغ منو","EXPLORE THE MENU")} <span className="ms-3 inline-block transition group-hover:-translate-x-1">↙</span>
-                </button>
-                <button type="button" onClick={() => { setTrackError(""); setTrackOpen(true); }} className="rounded-full border border-white/20 px-6 py-4 text-sm font-bold text-white/80 transition hover:border-[#ffc66f] hover:text-[#ffc66f]">
-                  {t("پیگیری سفارش","TRACK ORDER")}
-                </button>
-              </div>
-              <div className="mt-12 flex flex-wrap gap-x-8 gap-y-3 border-t border-white/10 pt-6 text-[10px] font-black tracking-[.18em] text-white/40">
-                <span>01 / BOLD TASTE</span><span>02 / FRESH MADE</span><span>03 / PURE CRAVING</span>
-              </div>
-            </div>
-            <div className="relative mx-auto flex min-h-[340px] w-full max-w-[560px] items-center justify-center lg:min-h-[500px]">
-              <div className="absolute h-[80%] w-[80%] rounded-full bg-[#ff5738]/20 blur-[85px]"/>
-              <div className="absolute h-[82%] w-[82%] rounded-full border border-dashed border-[#ffc66f]/25"/>
-              <div className="ff-hero-image relative aspect-[.88/1] w-[88%] overflow-hidden rounded-[2rem] border border-white/10 bg-[#30221d] shadow-[0_35px_90px_rgba(0,0,0,.55)] sm:aspect-[1/1.05]">
-                {foods.find((food) => food.imageUrl)?.imageUrl ? (
-                  <img src={foods.find((food) => food.imageUrl)?.imageUrl ?? ""} alt={t("غذای ویژه ژنرال","General signature food")} className="h-full w-full scale-110 object-cover"/>
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_50%_40%,#754132,#241916_72%)]"><span className="text-[clamp(9rem,24vw,17rem)] drop-shadow-[0_25px_25px_rgba(0,0,0,.6)]">🍔</span></div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-white/5"/>
-                <div className="absolute bottom-[13%] left-0 right-0 text-center">
-                  <p className="text-[10px] font-black tracking-[.35em] text-[#ffc66f]">GENERAL / SIGNATURE DROP</p>
-                  <p className="mt-2 text-2xl font-black text-white sm:text-3xl">{t("یه تجربه متفاوت","A DIFFERENT KIND OF BITE")}</p>
-                </div>
-              </div>
-              <div className="absolute right-0 top-[13%] rotate-6 rounded-2xl border border-[#ffc66f]/30 bg-[#ffc66f] px-4 py-3 text-[#211612] shadow-2xl">
-                <p className="text-[9px] font-black tracking-[.18em]">GENERAL</p><p className="text-sm font-black">{t("بزن به دل طعم","BITE BOLD")}</p>
-              </div>
-              <div className="absolute bottom-[10%] left-0 -rotate-6 rounded-2xl border border-white/15 bg-[#29201d]/90 px-4 py-3 shadow-2xl backdrop-blur">
-                <p className="text-[9px] font-black tracking-[.2em] text-[#ffc66f]">MADE FOR CRAVINGS</p><p className="mt-1 text-xs font-bold text-white">{t("تازه و وسوسه‌انگیز","FRESH & IRRESISTIBLE")}</p>
-              </div>
-            </div>
+          <div className="relative overflow-hidden">
+            <img
+              src="/pizza-hero.png"
+              alt={t("ژنرال؛ فرمانده طعم‌های خوشمزه! یه گاز تا عاشق شدن!", "General Fast Food — bold flavor, unforgettable pizza")}
+              className="block aspect-[16/9] w-full object-cover"
+              fetchPriority="high"
+            />
           </div>
-          <div className="relative overflow-hidden border-t border-white/10 bg-[#ff5738] py-3 text-center text-[10px] font-black tracking-[.24em] text-white sm:text-xs">
-            {t("طعم معمولی؟ نه اینجا  ✳  ژنرال یعنی انتخاب جسورانه  ✳  آماده‌ای؟","NO BORING BITES  ✳  THIS IS THE GENERAL  ✳  OWN YOUR CRAVINGS")}
+          <div className="flex flex-wrap items-center justify-center gap-3 border-t border-white/10 bg-[#17130f] px-4 py-4 sm:gap-5 sm:py-5">
+            <button type="button" onClick={() => document.getElementById("street-menu")?.scrollIntoView({behavior:"smooth"})} className="rounded-full bg-[#ffb900] px-7 py-3 text-sm font-black text-[#211612] shadow-lg transition hover:-translate-y-1 hover:bg-[#ffd04b]">
+              {t("مشاهده منو و سفارش", "EXPLORE MENU & ORDER")}
+            </button>
+            <button type="button" onClick={() => { setTrackError(""); setTrackOpen(true); }} className="rounded-full border border-white/25 px-6 py-3 text-sm font-bold text-white transition hover:border-[#ffc66f] hover:text-[#ffc66f]">
+              {t("پیگیری سفارش", "TRACK ORDER")}
+            </button>
           </div>
         </section>
 
@@ -1103,7 +1111,7 @@ export default function Home() {
             <div>
               <p className="mb-3 flex items-center gap-3 text-[10px] font-black tracking-[.3em] text-[#e65338]"><span className="h-px w-8 bg-[#9b4652]"/> GENERAL GOODS / MENU</p>
               <h2 className="text-4xl font-black tracking-tight sm:text-5xl">{t("انتخاب‌های خوشمزه","Made to")} <span className="ff-display font-normal italic text-[#8a3a46]">{t("ژنرال","crave.")}</span></h2>
-              <p className="mt-3 text-sm text-[#887b72]">{t("از بین طعم‌های ژنرال، انتخاب امروزت رو پیدا کن.","Find the one you came for. Or discover something new.")}</p>
+              <p className="mt-3 text-sm text-[#5b5048]">{t("از بین طعم‌های ژنرال، انتخاب امروزت رو پیدا کن.","Find the one you came for. Or discover something new.")}</p>
             </div>
             <div className="space-y-3">
               <div className="relative">
@@ -1158,16 +1166,16 @@ export default function Home() {
           </div>
 
           <div className="mb-6 flex items-center justify-between border-b border-[#e5dbd0] pb-4">
-            <p className="text-xs font-semibold text-[#887b72]">{t("منوی امروز","TODAY'S SELECTION")} <span className="mx-2 text-[#c49a5a]">/</span> {filteredFoods.length.toLocaleString(locale)} {t("آیتم","ITEMS")}</p>
+            <p className="text-xs font-semibold text-[#5b5048]">{t("منوی امروز","TODAY'S SELECTION")} <span className="mx-2 text-[#c49a5a]">/</span> {filteredFoods.length.toLocaleString(locale)} {t("آیتم","ITEMS")}</p>
             <span className="hidden text-[10px] font-bold tracking-[.2em] text-white/35 sm:block">FRESH. BOLD. GENERAL.</span>
           </div>
 
           {loading ? (
-            <div className="rounded-[2rem] border border-[#e8dfd4] bg-white p-16 text-center shadow-sm"><div className="mx-auto mb-5 h-11 w-11 animate-spin rounded-full border-4 border-[#eadfd3] border-t-[#7d2030]"/><p className="text-sm font-bold text-[#887b72]">{t("داریم منو رو آماده می‌کنیم...","Preparing the menu...")}</p></div>
+            <div className="rounded-[2rem] border border-[#e8dfd4] bg-white p-16 text-center shadow-sm"><div className="mx-auto mb-5 h-11 w-11 animate-spin rounded-full border-4 border-[#eadfd3] border-t-[#7d2030]"/><p className="text-sm font-bold text-[#5b5048]">{t("داریم منو رو آماده می‌کنیم...","Preparing the menu...")}</p></div>
           ) : loadError ? (
             <div className="rounded-[2rem] border border-[#e7c9c9] bg-[#fff7f5] p-8 text-center text-[#8b2636]">{loadError}<button type="button" onClick={() => window.location.reload()} className={`mt-5 block w-full rounded-full py-3 font-bold ${redButton}`}>{t("تلاش دوباره","TRY AGAIN")}</button></div>
           ) : filteredFoods.length === 0 ? (
-            <div className="rounded-[2rem] border border-[#e8dfd4] bg-white p-14 text-center"><div className="mb-4 text-5xl">⌕</div><p className="font-bold text-[#887b72]">{t("غذایی پیدا نشد.","No food found.")}</p></div>
+            <div className="rounded-[2rem] border border-[#e8dfd4] bg-white p-14 text-center"><div className="mb-4 text-5xl">⌕</div><p className="font-bold text-[#5b5048]">{t("غذایی پیدا نشد.","No food found.")}</p></div>
           ) : (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
               {filteredFoods.map((food, index) => (
@@ -1211,13 +1219,35 @@ export default function Home() {
                         {index === 0 && <span className="rounded-full bg-[#f4e9df] px-2.5 py-1 text-[9px] font-extrabold text-[#87394a]">{t("پیشنهاد ژنرال","GENERAL PICK")}</span>}
                       </div>
                       <h3 className="line-clamp-1 text-lg font-black tracking-tight text-[#302723]">{food.name}</h3>
-                      <p className="mt-2 line-clamp-2 min-h-[3rem] text-xs leading-6 text-[#82766d]">{food.description || t("توضیحاتی برای این غذا ثبت نشده است.","No description available.")}</p>
+                      <p className="mt-2 line-clamp-2 min-h-[3rem] text-xs leading-6 text-[#51463f]">{food.description || t("توضیحاتی برای این غذا ثبت نشده است.","No description available.")}</p>
                     </div>
+
+                    {food.hasSizes && (
+                      <div className="mt-4">
+                        <p className="mb-2 text-[10px] font-black text-[#8b796b]">{t("انتخاب اندازه پیتزا", "CHOOSE PIZZA SIZE")}</p>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {([
+                            ["one", t("یک‌نفره", "1 person")],
+                            ["two", t("دونفره", "2 people")],
+                            ["three", t("سه‌نفره", "3 people")],
+                          ] as [FoodSize, string][]).map(([size, label]) => {
+                            const active = (selectedSizes[food.id] ?? "two") === size;
+                            return (
+                              <button key={size} type="button" onClick={() => setSelectedSizes((current) => ({ ...current, [food.id]: size }))}
+                                aria-pressed={active}
+                                className={`rounded-xl border px-1.5 py-2 text-[10px] font-black transition ${active ? "border-[#76283a] bg-[#76283a] text-white shadow-sm" : "border-[#e5d8ca] bg-white text-[#6f6258] hover:border-[#b88b70]"}`}>
+                                {label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="mt-5 flex items-center justify-between gap-3 border-t border-[#eee5dc] pt-4">
                       <div className="min-w-0">
                         <p className="mb-1 text-[9px] font-bold text-[#a2958a]">{t("قیمت نهایی","PRICE")}</p>
-                        <p className="whitespace-nowrap text-base font-black text-[#76283a]">{formatPrice(food.price)}</p>
+                        <p className="whitespace-nowrap text-base font-black text-[#76283a]">{formatPrice(priceForSize(food, food.hasSizes ? (selectedSizes[food.id] ?? "two") : "regular"))}</p>
                       </div>
                       <button
                         type="button"
@@ -1465,7 +1495,7 @@ export default function Home() {
 
         <div className="flex-1 overflow-y-auto p-5">
           {cartItems.length === 0 ? (
-            <div className="py-16 text-center text-[#887b72]">
+            <div className="py-16 text-center text-[#5b5048]">
               <div className="mb-4 text-6xl">🛒</div>
               {t("سبد خرید خالی است.", "YOUR CART IS EMPTY.")}
             </div>
@@ -1473,7 +1503,7 @@ export default function Home() {
             <div className="space-y-4">
               {cartItems.map((item) => (
                 <div
-                  key={item.food.id}
+                  key={`${item.food.id}-${item.size}`}
                   className="flex items-center justify-between gap-3 rounded-2xl border border-[#e8dfd4] bg-[#f8f2ea] p-4"
                 >
                   <div className="flex min-w-0 items-center gap-3">
@@ -1491,8 +1521,9 @@ export default function Home() {
                       <h3 className="truncate font-bold">
                         {item.food.name}
                       </h3>
+                      {item.food.hasSizes && <p className="mt-1 text-[11px] font-bold text-[#9a6b36]">{sizeLabel(item.size)}</p>}
                       <p className={`mt-1 text-xs ${gold}`}>
-                        {formatPrice(item.food.price)}
+                        {formatPrice(item.unitPrice)}
                       </p>
                     </div>
                   </div>
@@ -1500,7 +1531,7 @@ export default function Home() {
                   <div className="flex shrink-0 items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => decreaseQuantity(item.food.id)}
+                      onClick={() => decreaseQuantity(item.food.id, item.size)}
                       className="h-8 w-8 rounded-lg bg-[#35251f] font-bold hover:bg-red-600"
                     >
                       −
@@ -1512,7 +1543,7 @@ export default function Home() {
 
                     <button
                       type="button"
-                      onClick={() => addToCart(item.food)}
+                      onClick={() => addToCart(item.food, item.size)}
                       disabled={!item.food.isAvailable}
                       className="h-8 w-8 rounded-lg bg-red-600 font-bold disabled:opacity-40"
                     >
@@ -1527,7 +1558,7 @@ export default function Home() {
 
         <div className="border-t border-[#e8dfd4] bg-[#f2e9df] p-5">
           <div className="mb-5 flex items-center justify-between gap-2">
-            <span className="font-bold text-[#887b72]">
+            <span className="font-bold text-[#5b5048]">
               {t("مبلغ کل", "TOTAL")}
             </span>
             <span className={`text-xl font-black ${gold}`}>
@@ -1565,7 +1596,19 @@ export default function Home() {
               setClubMessage("");
               if (!/^09\d{9}$/.test(clubPhone)) { setClubMessage(t("شماره موبایل معتبر نیست.","Enter a valid mobile number.")); return; }
               setClubSubmitting(true);
-              try { const { error } = await supabase.rpc("join_customer_club", { p_phone: clubPhone }); if (error) throw error; setClubMessage(t("ثبت‌نام شما با موفقیت انجام شد.","You have joined the club successfully.")); setClubPhone(""); }
+              try {
+                const { data: existing, error: lookupError } = await supabase
+                  .from("customers").select("id").eq("phone", clubPhone).limit(1);
+                if (lookupError) throw lookupError;
+                if (existing && existing.length > 0) {
+                  setClubMessage(t("این شماره قبلاً در باشگاه مشتریان ثبت شده است؛ نیازی به ثبت‌نام دوباره نیست.","This number is already registered in the customer club."));
+                  return;
+                }
+                const { error } = await supabase.rpc("join_customer_club", { p_phone: clubPhone });
+                if (error) throw error;
+                setClubMessage(t("ثبت‌نام شما با موفقیت انجام شد.","You have joined the club successfully."));
+                setClubPhone("");
+              }
               catch (err) { console.error(err); setClubMessage(t("ثبت شماره انجام نشد. لطفاً تنظیمات پایگاه داده را بررسی کنید.","Could not save your number. Please check the database setup.")); }
               finally { setClubSubmitting(false); }
             }} className="w-full rounded-xl bg-[#203d32] px-5 py-3 font-black text-white disabled:opacity-50">{clubSubmitting ? t("در حال ثبت...","Saving...") : t("عضویت در باشگاه","Join the club")}</button>
@@ -1626,8 +1669,26 @@ export default function Home() {
                   />
                 </div>
 
+                <div className="mb-4">
+                  <label className="mb-2 block text-sm font-bold text-[#241b18]">
+                    {t("شماره موبایل", "MOBILE NUMBER")}
+                  </label>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    maxLength={11}
+                    dir="ltr"
+                    value={customerPhone}
+                    onChange={(event) => setCustomerPhone(event.target.value.replace(/[^0-9۰-۹٠-٩]/g, "").slice(0, 11))}
+                    placeholder="09123456789"
+                    className="w-full rounded-xl border border-[#cfc1b2] bg-white px-4 py-3 text-left font-semibold text-[#211916] placeholder:text-[#75695f] outline-none focus:border-[#8b2636] focus:ring-2 focus:ring-[#8b2636]/15"
+                  />
+                  <p className="mt-1 text-xs text-[#5b5048]">{t("برای هماهنگی و پیگیری سفارش لازم است.", "Required for order coordination and tracking.")}</p>
+                </div>
+
                 <div className="mb-5">
-                  <label className="mb-2 block text-sm font-bold">
+                  <label className="mb-2 block text-sm font-bold text-[#241b18]">
                     {t("توضیحات سفارش", "ORDER NOTES")}
                   </label>
                   <textarea
@@ -1644,7 +1705,7 @@ export default function Home() {
 
                 <div className="mb-5 rounded-2xl border border-[#e8dfd4] bg-[#f8f2ea] p-4">
                   <div className="mb-3 flex justify-between text-sm">
-                    <span className="text-[#887b72]">
+                    <span className="text-[#5b5048]">
                       {t("تعداد اقلام", "ITEMS")}
                     </span>
                     <span className="font-bold">
@@ -1685,18 +1746,18 @@ export default function Home() {
                 <h2 className="mb-3 text-2xl font-black text-emerald-400">
                   {t("سفارش ثبت شد!", "ORDER CONFIRMED!")}
                 </h2>
-                <p className="mb-5 text-[#887b72]">
+                <p className="mb-5 text-[#5b5048]">
                   {customerName}، {t("ممنون از انتخابت!", "THANK YOU!")}
                 </p>
 
                 <div className="mb-6 rounded-2xl border border-[#f4c65e]/30 bg-[#f4c65e]/10 p-5">
-                  <p className="mb-2 text-sm text-[#887b72]">
+                  <p className="mb-2 text-sm text-[#5b5048]">
                     {t("شماره سفارش", "ORDER NUMBER")}
                   </p>
                   <p dir="ltr" className="text-4xl font-black text-[#a77b35]">
                     {orderNumber}
                   </p>
-                  <p className="mt-4 mb-2 text-sm text-[#887b72]">
+                  <p className="mt-4 mb-2 text-sm text-[#5b5048]">
                     {t("کد محرمانه پیگیری؛ آن را نگه دار", "PRIVATE TRACKING CODE — KEEP IT SAFE")}
                   </p>
                   <p dir="ltr" className="break-all text-lg font-bold tracking-wider text-[#a77b35]">
@@ -1739,7 +1800,7 @@ export default function Home() {
                   <h2 className="text-2xl font-black">
                     {t("پیگیری سفارش", "TRACK YOUR ORDER")}
                   </h2>
-                  <p className="mt-2 text-sm text-[#887b72]">
+                  <p className="mt-2 text-sm text-[#5b5048]">
                     {t("وضعیت سفارش خودت رو همین‌جا ببین.", "Your order status, right here.")}
                   </p>
                 </div>
@@ -1770,7 +1831,7 @@ export default function Home() {
                   {trackLoading && !trackedOrder ? (
                     <div className="py-8 text-center">
                       <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-[#e8dfd4] border-t-[#ed263b]" />
-                      <p className="text-sm text-[#887b72]">{t("در حال دریافت وضعیت سفارش...", "Loading order status...")}</p>
+                      <p className="text-sm text-[#5b5048]">{t("در حال دریافت وضعیت سفارش...", "Loading order status...")}</p>
                     </div>
                   ) : trackedOrder ? (
                     <>
@@ -1784,7 +1845,7 @@ export default function Home() {
                         <div className="mb-2 text-4xl">
                           {trackedOrder.status === "Ready" ? "🎉" : trackedOrder.status === "Cancelled" ? "✕" : "🍳"}
                         </div>
-                        <p className="text-xs text-[#887b72]">{t("وضعیت فعلی سفارش", "CURRENT STATUS")}</p>
+                        <p className="text-xs text-[#5b5048]">{t("وضعیت فعلی سفارش", "CURRENT STATUS")}</p>
                         <p className={`mt-2 text-xl font-black ${
                           trackedOrder.status === "Ready" ? "text-emerald-300" :
                           trackedOrder.status === "Cancelled" ? "text-[#8b2636]" : "text-[#a77b35]"
@@ -1798,7 +1859,7 @@ export default function Home() {
                         )}
                         {trackedOrder.status === "Preparing" && trackedOrder.estimated_ready_at && (
                           <div className="mt-4 rounded-xl border border-[#f4c65e]/20 bg-black/20 p-3">
-                            <p className="text-xs text-[#887b72]">{t("زمان تقریبی آماده‌شدن", "ESTIMATED READY TIME")}</p>
+                            <p className="text-xs text-[#5b5048]">{t("زمان تقریبی آماده‌شدن", "ESTIMATED READY TIME")}</p>
                             <p className="mt-1 text-lg font-black text-[#a77b35]">
                               {formatDateTime(trackedOrder.estimated_ready_at)}
                             </p>
@@ -1815,7 +1876,7 @@ export default function Home() {
                           {trackedOrder.items?.map((item, index) => (
                             <div key={`${item.food_name}-${index}`} className="flex items-center justify-between gap-3 text-sm">
                               <span className="text-[#6d625b]">{item.food_name} × {item.quantity}</span>
-                              <span className="shrink-0 text-[#887b72]">{formatPrice(Number(item.unit_price) * item.quantity)}</span>
+                              <span className="shrink-0 text-[#5b5048]">{formatPrice(Number(item.unit_price) * item.quantity)}</span>
                             </div>
                           ))}
                         </div>
@@ -1831,7 +1892,7 @@ export default function Home() {
                 <div className="rounded-2xl border border-[#e8dfd4] bg-[#f8f2ea] p-5 text-center">
                   <div className="mb-3 text-5xl">📦</div>
                   <h3 className="font-black">{t("هنوز سفارشی ثبت نکردی", "No order yet")}</h3>
-                  <p className="mt-2 text-sm leading-7 text-[#887b72]">
+                  <p className="mt-2 text-sm leading-7 text-[#5b5048]">
                     {t("بعد از ثبت سفارش، شماره و اطلاعات پیگیری به‌صورت خودکار در همین مرورگر ذخیره می‌شود و دیگر نیازی به وارد کردن دوباره شماره موبایل نیست.", "After placing an order, its tracking details are saved in this browser. Use your private tracking code to view this order.")}
                   </p>
                   <button
@@ -1867,6 +1928,29 @@ export default function Home() {
           </section>
         </div>
       )}
+
+      {/* RESTAURANT INFORMATION */}
+      <section id="restaurant-info" dir={direction} className="mx-auto my-12 grid max-w-[1440px] gap-6 px-4 sm:px-8 lg:grid-cols-[1.1fr_.9fr] lg:px-12">
+        <div className="relative overflow-hidden rounded-[2rem] border border-[#e8dfd4] bg-[#fffaf4] p-7 text-[#282321] shadow-sm sm:p-9">
+          <div className="pointer-events-none absolute -end-10 -top-12 h-48 w-48 rounded-full border-[22px] border-[#c49a55]/10" />
+          <p className="mb-3 text-xs font-black tracking-[.2em] text-[#b64c32]">ABOUT GENERAL</p>
+          <h2 className="text-2xl font-black sm:text-3xl">{t("اطلاعات مجموعه", "About our restaurant")}</h2>
+          <p className="mt-4 leading-8 text-[#51463f]">{t("فست‌فود ژنرال؛ فرمانده طعم‌های خوشمزه. هر روز با غذاهای تازه و سفارش آسان در خدمت شما هستیم.", "General Fast Food — bold flavor, freshly prepared and easy to order.")}</p>
+          <div className="mt-6 grid gap-3 text-sm sm:grid-cols-2">
+            <div className="rounded-xl bg-[#f3ece3] p-4"><b>📍 {t("نشانی", "Address")}</b><p className="mt-2 text-xs leading-7 text-[#51463f]">{t("شهرک والفجر - بلوار اصلی - نرسیده به میدان مطالعه", "Valfajr Township – Main Boulevard – before Motale'e Square")}</p></div>
+            <div className="rounded-xl bg-[#f3ece3] p-4"><b>🕒 {t("ساعت کاری", "Opening hours")}</b><p className="mt-2 text-xs leading-7 text-[#51463f]">{t("هر روز از ساعت ۱۷:۰۰ تا ۲۴:۰۰", "Daily, 5:00 PM – 12:00 AM")}</p></div>
+          </div>
+        </div>
+        <div className="rounded-[2rem] border border-[#3a2a25] bg-gradient-to-br from-[#241b19] via-[#1b1918] to-[#431d2b] p-7 text-white shadow-xl sm:p-9">
+          <p className="mb-3 text-xs font-black tracking-[.2em] text-[#e2b66e]">CUSTOMER CARE</p>
+          <h2 className="text-2xl font-black">{t("ارتباط با ژنرال", "Contact General")}</h2>
+          <p className="mt-4 leading-8 text-white/70">{t("برای سفارش تلفنی یا دریافت راهنمایی با ما تماس بگیرید.", "Call us for phone orders or assistance.")}</p>
+          <a href="tel:09330473839" dir="ltr" className="mt-5 flex items-center justify-between rounded-2xl border border-white/15 bg-white/5 px-5 py-4 text-lg font-black tracking-wider text-[#f4d49a] transition hover:bg-white/10">
+            <span>09330473839</span><span aria-hidden="true">☎</span>
+          </a>
+          <button type="button" onClick={() => { setTrackError(""); setTrackOpen(true); }} className="mt-5 rounded-full bg-[#c64d35] px-6 py-3 text-sm font-black text-white transition hover:bg-[#e15c42]">{t("پیگیری سفارش", "Track an order")}</button>
+        </div>
+      </section>
 
       {/* FOOTER */}
       <footer className="border-t border-[#e8dfd4] bg-[#101115] px-4 py-12 text-center">

@@ -75,7 +75,16 @@ export default function AdminLiveDashboard() {
       if (customersResult.error) throw customersResult.error;
       if (foodsResult.error) throw foodsResult.error;
       setOrders((ordersResult.data ?? []) as Order[]);
-      setCustomers((customersResult.data ?? []) as Customer[]);
+      const uniqueCustomers = new Map<string, Customer>();
+      for (const customer of (customersResult.data ?? []) as Customer[]) {
+        const normalizedPhone = customer.phone.replace(/\\D/g, "");
+        if (!normalizedPhone) continue;
+        const previous = uniqueCustomers.get(normalizedPhone);
+        if (!previous || new Date(customer.created_at).getTime() < new Date(previous.created_at).getTime()) {
+          uniqueCustomers.set(normalizedPhone, customer);
+        }
+      }
+      setCustomers([...uniqueCustomers.values()]);
       setFoodCount(foodsResult.count ?? 0);
       setLastUpdated(new Date());
     } catch (cause) {
