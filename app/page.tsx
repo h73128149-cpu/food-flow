@@ -595,14 +595,14 @@ export default function Home() {
         #street-menu h2 { letter-spacing:-.065em; }
         @media(min-width:1024px) { .ff-hero h2 { font-size:clamp(5.5rem,8vw,8.5rem)!important; } }
         @media(max-width:640px) { .ff-hero { margin-inline:-1rem; } .ff-hero-image { width:94%; } .ff-menu-card > div:first-child { min-height:230px; } }
-        /* GENERAL / MODERN BISTRO THEME */
+        /* GENERAL / CLASSIC MODERN THEME */
         :root {
-          --g-ink: #202923;
-          --g-paper: #f7f5ef;
-          --g-green: #244b3b;
-          --g-green-soft: #e8efe9;
-          --g-orange: #e66b45;
-          --g-muted: #777d75;
+          --g-ink: #302823;
+          --g-paper: #f8f4ec;
+          --g-green: #781f35;
+          --g-green-soft: #f1e5e3;
+          --g-orange: #a77b35;
+          --g-muted: #75695f;
         }
         body, main {
           background: var(--g-paper) !important;
@@ -610,27 +610,55 @@ export default function Home() {
           font-family: "Vazirmatn", sans-serif;
         }
         .ff-header {
-          background: rgba(247,245,239,.94) !important;
+          background: rgba(248,244,236,.97) !important;
           color: var(--g-ink) !important;
-          border-color: rgba(36,75,59,.12) !important;
-          box-shadow: 0 5px 24px rgba(32,41,35,.045);
+          border-color: #e5d9c9 !important;
+          box-shadow: 0 5px 24px rgba(56,38,25,.07);
         }
-        .ff-header a img {
-          border-radius: 16px !important;
-          background: white;
-          padding: 3px;
+        .ff-header nav { color: #51463e !important; }
+        .ff-header nav a:hover { color: #781f35 !important; }
+        .ff-brand { text-decoration: none; }
+        .ff-logo-mark {
+          width: 54px; height: 54px; flex: 0 0 54px;
+          display: grid; place-items: center;
+          border: 2px solid #c49a55; border-radius: 17px;
+          background: linear-gradient(145deg,#8b2942,#501323);
+          box-shadow: 0 5px 14px #781f3525;
         }
-        .ff-header a h1 { color: var(--g-ink) !important; }
-        .ff-header a p { color: var(--g-orange) !important; }
-        .ff-header nav { color: #68736b !important; }
-        .ff-header nav a:hover, .ff-header nav button:hover { color: var(--g-orange) !important; }
-        .ff-header button[type="button"] {
-          background: var(--g-green) !important;
-          color: white !important;
-          border-radius: 999px !important;
-          box-shadow: 0 8px 20px rgba(36,75,59,.18) !important;
+        .ff-logo-mark span { color: #f2dcae; font: 900 34px/1 Georgia,serif; }
+        .ff-brand-caption { display:block; color:#a77b35; font-size:9px; font-weight:900; letter-spacing:.16em; }
+        .ff-brand-title { display:block; color:#302823; font-size:19px; font-weight:900; white-space:nowrap; }
+        .ff-header-action {
+          display:inline-flex; align-items:center; justify-content:center; gap:8px;
+          min-height:44px; padding:10px 19px;
+          border:1px solid #781f3540 !important; border-radius:999px !important;
+          background:#fffdf9 !important; color:#781f35 !important;
+          font-size:12px; font-weight:900; box-shadow:0 4px 12px #3826190b !important;
         }
-        .ff-header button[type="button"]:hover { background: #32634e !important; }
+        .ff-header-action:hover {
+          background:#781f35 !important; border-color:#781f35 !important;
+          color:white !important; transform:translateY(-2px);
+          box-shadow:0 8px 18px #781f3530 !important;
+        }
+        .ff-header-action span { color:#b58a48; font-size:17px; }
+        .ff-header-action:hover span { color:#f2dcae; }
+        .ff-nav-link { padding:11px 17px; color:#51463e; font-size:13px; font-weight:800; text-decoration:none; transition:.25s ease; }
+        .ff-cart-button {
+          min-height:46px; padding:11px 21px; border:0 !important; border-radius:999px !important;
+          background:linear-gradient(135deg,#8b2942,#501323) !important; color:white !important;
+          font-size:13px; font-weight:900; box-shadow:0 7px 18px #781f3530 !important;
+        }
+        .ff-cart-button:hover { background:#681a30 !important; transform:translateY(-2px); }
+        @media(max-width:767px) {
+          .ff-logo-mark { width:45px; height:45px; flex-basis:45px; border-radius:14px; }
+          .ff-logo-mark span { font-size:29px; }
+          .ff-brand-title { font-size:16px; }
+          .ff-brand-caption { font-size:8px; }
+          .ff-header-nav { padding-top:8px; border-top:1px solid #e5d9c9; }
+          .ff-header-action { min-height:40px; padding:9px 13px; font-size:11px; }
+          .ff-nav-link { padding:9px 12px; font-size:12px; }
+          .ff-cart-button { min-height:42px; padding:9px 13px; font-size:11px; }
+        }
         .ff-hero {
           margin: 20px 0 0 !important;
           min-height: 650px !important;
@@ -801,29 +829,208 @@ export default function Home() {
         @media (prefers-reduced-motion: reduce) {
           *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important; }
         }
+
+        /* ===== RESPONSIVE MOBILE REFINEMENT ===== */
+        :root {
+          --line: #e5d9c9;
+          --gold: #c49a55;
+          color-scheme: light;
+        }
+        html { scroll-behavior: smooth; }
+        body { min-width: 320px; }
+        button, a { -webkit-tap-highlight-color: transparent; }
+        button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+          outline: 3px solid rgba(196,154,85,.65) !important;
+          outline-offset: 3px !important;
+        }
+        .ff-header { z-index: 50; }
+        .ff-header > div { min-height: 76px; }
+        .ff-header-action, .ff-cart-button { min-height: 44px; }
+        .ff-hero button, #street-menu button { touch-action: manipulation; }
+        .ff-menu-card { min-width: 0; }
+        .ff-menu-card img { display:block; }
+        .ff-menu-card button { min-width: 44px; min-height: 44px; }
+
+        @media (max-width: 767px) {
+          .ff-header > div {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 9px 10px !important;
+            padding: 9px 12px !important;
+          }
+          .ff-brand { gap: 8px !important; max-width: 48%; }
+          .ff-logo-mark { width: 42px !important; height: 42px !important; flex-basis: 42px !important; border-radius: 13px !important; }
+          .ff-logo-mark span { font-size: 27px !important; }
+          .ff-brand-caption { font-size: 7px !important; letter-spacing: .1em !important; }
+          .ff-brand-title { font-size: 14px !important; }
+          .ff-header > div > div:last-child { gap: 6px !important; }
+          .ff-header > div > div:last-child > div { gap: 5px !important; }
+          .ff-header > div > div:last-child button {
+            min-width: 39px !important; min-height: 39px !important;
+            padding: 7px 9px !important; border-radius: 13px !important;
+            font-size: 12px !important;
+          }
+          .ff-cart-button { min-height: 40px !important; padding: 8px 12px !important; font-size: 11px !important; }
+          .ff-header-nav {
+            order: 3 !important; width: 100% !important;
+            display: flex !important; justify-content: center !important;
+            gap: 7px !important; padding-top: 8px !important;
+            border-top: 1px solid #e5d9c9 !important;
+          }
+          .ff-nav-link { padding: 8px 12px !important; font-size: 12px !important; }
+          .ff-header-action { min-height: 38px !important; padding: 8px 12px !important; font-size: 11px !important; }
+
+          .ff-hero { margin: 0 -1rem !important; border-radius: 0 0 24px 24px !important; min-height: 0 !important; }
+          .ff-hero .relative.grid {
+            min-height: 0 !important; gap: 24px !important;
+            padding: 42px 20px 34px !important;
+          }
+          .ff-hero h2 {
+            font-size: clamp(2.65rem, 11vw, 4.1rem) !important;
+            line-height: 1.2 !important; letter-spacing: -.055em !important;
+          }
+          .ff-hero p { font-size: 14px !important; line-height: 1.95 !important; }
+          .ff-hero .ff-hero-image { width: min(82%, 330px) !important; margin-inline: auto !important; }
+          .ff-hero .relative.grid > div:first-child > div:last-child { gap: 10px !important; margin-top: 22px !important; }
+          .ff-hero .relative.grid > div:first-child > div:last-child button,
+          .ff-hero .relative.grid > div:first-child > div:last-child a {
+            min-height: 48px !important; padding: 11px 17px !important; font-size: 13px !important;
+          }
+          #street-menu { margin-inline: -1rem !important; padding: 46px 14px 64px !important; }
+          #street-menu h2 { font-size: clamp(2rem, 8vw, 3rem) !important; }
+          #street-menu .ff-scroll { gap: 8px !important; padding-bottom: 5px !important; }
+          #street-menu .ff-scroll button { min-height: 42px !important; padding: 9px 15px !important; font-size: 12px !important; }
+          .ff-menu-card { border-radius: 18px !important; }
+          .ff-menu-card > div:first-child { min-height: 0 !important; height: clamp(175px, 53vw, 225px) !important; }
+          .ff-menu-card > div:nth-child(2) { padding: 16px !important; }
+          .ff-menu-card > div:nth-child(2) h3 { font-size: 1.2rem !important; }
+          .ff-menu-card button { min-height: 42px !important; }
+          .fixed.bottom-5.start-5 { bottom: 14px !important; inset-inline-start: 12px !important; padding: 11px 15px !important; font-size: 12px !important; z-index: 35 !important; }
+          .fixed.inset-0 > section { max-height: calc(100dvh - 24px) !important; overflow-y: auto !important; }
+          footer { padding-top: 34px !important; padding-bottom: 34px !important; }
+        }
+        @media (max-width: 380px) {
+          .ff-brand-caption { display: none !important; }
+          .ff-brand-title { font-size: 13px !important; }
+          .ff-header-action { padding-inline: 9px !important; font-size: 10px !important; }
+          .ff-cart-button { padding-inline: 10px !important; }
+        }
+
+        /* ===== DARK THEME: charcoal, white and restrained gold ===== */
+        html.dark { color-scheme: dark; --line: #49433c; --gold: #d3ad6c; }
+        html.dark body, html.dark main {
+          background: #111111 !important; color: #f4f0e9 !important;
+        }
+        html.dark .ff-header {
+          background: rgba(24,24,24,.97) !important;
+          color: #f4f0e9 !important; border-color: #3a3530 !important;
+          box-shadow: 0 5px 24px rgba(0,0,0,.35) !important;
+        }
+        html.dark .ff-brand-title, html.dark .ff-header nav,
+        html.dark .ff-nav-link { color: #f4f0e9 !important; }
+        html.dark .ff-brand-caption { color: #d3ad6c !important; }
+        html.dark .ff-header-nav { border-color: #3a3530 !important; }
+        html.dark .ff-header-action {
+          background: #242424 !important; color: #f4f0e9 !important;
+          border-color: #645137 !important; box-shadow: none !important;
+        }
+        html.dark .ff-header-action:hover { background: #3a3022 !important; color: #f7dfb0 !important; }
+        html.dark .ff-cart-button { background: linear-gradient(135deg,#3b3b3b,#171717) !important; color: #f7dfb0 !important; border: 1px solid #8d7044 !important; }
+        html.dark .ff-logo-mark { background: linear-gradient(145deg,#333,#111) !important; border-color: #c49a55 !important; }
+        html.dark .ff-logo-mark span { color: #f1d59e !important; }
+
+        html.dark .ff-hero {
+          background: #191919 !important;
+          box-shadow: 0 24px 65px rgba(0,0,0,.4) !important;
+        }
+        html.dark .ff-hero > div:first-child {
+          background: radial-gradient(ellipse at 78% 40%,rgba(196,154,85,.16),transparent 42%),radial-gradient(ellipse at 5% 100%,rgba(255,255,255,.06),transparent 42%) !important;
+        }
+        html.dark .ff-hero h2 span:first-of-type { color: #e0bd7c !important; }
+        html.dark .ff-hero h2 span:last-of-type,
+        html.dark .ff-hero p { color: #f2eee7 !important; }
+        html.dark .ff-hero .inline-flex { color: #e6c98f !important; border-color: #8b7048 !important; background: #29251f !important; }
+        html.dark .ff-hero button:first-child { background: #f0eee9 !important; color: #171717 !important; box-shadow: 0 8px 22px #0008 !important; }
+        html.dark .ff-hero button:nth-child(2) { color: #f4f0e9 !important; border-color: #777 !important; background: #252525 !important; }
+
+        html.dark #street-menu { background: #111111 !important; color: #f4f0e9 !important; }
+        html.dark #street-menu h2, html.dark #street-menu h3 { color: #f4f0e9 !important; }
+        html.dark #street-menu p { color: #c5beb3 !important; }
+        html.dark #street-menu h2 span { color: #d3ad6c !important; }
+        html.dark #street-menu input,
+        html.dark input, html.dark textarea, html.dark select {
+          background: #242424 !important; color: #ffffff !important;
+          border-color: #51483c !important; caret-color: #e1bd7c !important;
+        }
+        html.dark input::placeholder, html.dark textarea::placeholder { color: #bdb4a8 !important; opacity: 1 !important; }
+        html.dark #street-menu .ff-scroll button {
+          background: #242424 !important; color: #e9e4dc !important; border-color: #51483c !important;
+        }
+        html.dark #street-menu .ff-scroll button[class*="bg-[#211916]"] {
+          background: #d3ad6c !important; color: #17130e !important; border-color: #d3ad6c !important;
+        }
+        html.dark .ff-menu-card {
+          background: #222222 !important; color: #f4f0e9 !important;
+          border-color: #3c3832 !important; box-shadow: 0 12px 32px #0007 !important;
+        }
+        html.dark .ff-menu-card > div:first-child { background: #34302b !important; }
+        html.dark .ff-menu-card > div:nth-child(2) h3,
+        html.dark .ff-menu-card > div:nth-child(2) > div:last-child p { color: #f4f0e9 !important; }
+        html.dark .ff-menu-card > div:nth-child(2) p { color: #c4bbae !important; }
+        html.dark .ff-menu-card > div:nth-child(2) > div:last-child { border-color: #49433b !important; }
+        html.dark .ff-menu-card > div:nth-child(2) > div:last-child p:last-child { color: #e0bd7c !important; }
+        html.dark .ff-menu-card button { background: #f0eee9 !important; color: #171717 !important; }
+
+        html.dark .fixed.inset-0 > section,
+        html.dark [role="dialog"] > section {
+          background: #202020 !important; color: #f4f0e9 !important;
+          border-color: #4b443a !important;
+        }
+        html.dark .fixed.top-0.z-50 {
+          background: #1d1d1d !important; color: #f4f0e9 !important;
+          border-color: #49433b !important;
+        }
+        html.dark .fixed.top-0.z-50 > div,
+        html.dark .fixed.top-0.z-50 .bg-white,
+        html.dark .fixed.top-0.z-50 [class*="bg-[#f"] {
+          background: #292929 !important; color: #f4f0e9 !important;
+          border-color: #49433b !important;
+        }
+        html.dark .fixed.inset-0 .text-\[\#777d75\],
+        html.dark .fixed.inset-0 .text-\[\#887b72\],
+        html.dark .fixed.inset-0 .text-\[\#6d625b\] { color: #c8beb1 !important; }
+        html.dark footer { background: #090909 !important; color: #f4f0e9 !important; border-color: #39332c !important; }
+        html.dark footer h3 { color: #f4f0e9 !important; }
+        html.dark .fixed.bottom-5.start-5 { background: #242424 !important; color: #f4f0e9 !important; border-color: #c49a55 !important; }
+
       `}</style>
 
-      {/* EDITORIAL HEADER */}
-      <header className="ff-header sticky top-0 z-30 border-b border-[#292929]/10 bg-[#f5f1e8]/95 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-3 px-4 py-3 sm:px-8 lg:px-12">
-          <a href="#" className="flex min-w-0 items-center gap-3">
-            <img src="/general-logo.png" alt="General" className="h-11 w-11 rounded-full object-contain sm:h-14 sm:w-14" />
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold tracking-[.28em] text-[#e65338]">BUILT TO CRAVE</p>
-              <h1 className="truncate text-lg font-black tracking-tight sm:text-xl">{t("فست‌فود ژنرال","GENERAL")}<span className="ms-2 text-[#ff7659]">.</span></h1>
-            </div>
+      {/* GENERAL PREMIUM HEADER */}
+      <header className="ff-header sticky top-0 z-30 border-b backdrop-blur-xl">
+        <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-8 lg:px-12">
+          <a href="#" className="ff-brand flex min-w-0 items-center gap-3">
+            <span className="ff-logo-mark" aria-hidden="true"><span>G</span></span>
+            <span className="min-w-0">
+              <span className="ff-brand-caption">GENERAL FAST FOOD</span>
+              <span className="ff-brand-title">{t("فست‌فود ژنرال", "GENERAL")}</span>
+            </span>
           </a>
-          <nav className="hidden items-center gap-8 text-sm font-semibold text-[#6d625b] md:flex">
-            <a href="#street-menu" className="transition hover:text-[#ff7659]">{t("منو","Menu")}</a>
-            <button type="button" onClick={() => { setClubMessage(""); setClubOpen(true); }} className="transition hover:text-[#ff7659]">{t("باشگاه مشتریان","Loyalty club")}</button>
-            <button type="button" onClick={() => { setTrackError(""); setTrackOpen(true); }} className="transition hover:text-[#ff7659]">{t("پیگیری سفارش","Track order")}</button>
+          <nav className="ff-header-nav order-3 flex w-full items-center justify-center gap-2 sm:gap-3 md:order-none md:w-auto">
+            <a href="#street-menu" className="ff-nav-link">{t("منو", "Menu")}</a>
+            <button type="button" onClick={() => { setClubMessage(""); setClubOpen(true); }} className="ff-header-action ff-club-button">
+              <span aria-hidden="true">✦</span>{t("باشگاه مشتریان", "Loyalty club")}
+            </button>
+            <button type="button" onClick={() => { setTrackError(""); setTrackOpen(true); }} className="ff-header-action ff-track-button">
+              <span aria-hidden="true">⌕</span>{t("پیگیری سفارش", "Track order")}
+            </button>
           </nav>
           <div className="flex shrink-0 items-center gap-2">
-            <button type="button" onClick={() => { setClubMessage(""); setClubOpen(true); }} className="rounded-full border border-[#203d32]/20 px-3 py-2 text-xs font-bold text-[#203d32] md:hidden">{t("باشگاه","Club")}</button>
             <AppControls />
-            <button type="button" onClick={() => setCartOpen(true)} className="relative flex items-center gap-2 rounded-full bg-[#ff5738] px-5 py-3 text-sm font-black text-white shadow-lg shadow-[#ff5738]/25 transition hover:bg-[#e8492d]">
-              <span>{t("سبد خرید","Bag")}</span><span aria-hidden="true">↗</span>
-              {cartCount > 0 && <span className="absolute -end-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-[#f6f1e9] bg-[#c49a5a] px-1 text-[11px] font-black text-white">{cartCount}</span>}
+            <button type="button" onClick={() => setCartOpen(true)} className="ff-cart-button relative flex items-center gap-2">
+              <span>{t("سبد خرید", "Bag")}</span><span aria-hidden="true">↗</span>
+              {cartCount > 0 && <span className="absolute -end-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-[#f8f4ec] bg-[#c49a55] px-1 text-[11px] font-black text-white">{cartCount}</span>}
             </button>
           </div>
         </div>
@@ -1655,14 +1862,10 @@ export default function Home() {
 
       {/* FOOTER */}
       <footer className="border-t border-[#e8dfd4] bg-[#101115] px-4 py-12 text-center">
-        <img
-          src="/general-logo.png"
-          alt="General Fast Food"
-          className="mx-auto mb-4 h-14 w-14 object-contain"
-        />
+        <div className="ff-logo-mark mx-auto mb-4" aria-label="General Fast Food"><span>G</span></div>
 
-        <h3 className="text-xl font-black">
-          GENERAL <span className="text-[#ff7659]">FAST FOOD</span>
+        <h3 className="text-xl font-black text-[#fffdf9]">
+          GENERAL <span className="text-[#c49a55]">FAST FOOD</span>
         </h3>
 
         <div className="mx-auto mt-7 h-px max-w-xs bg-gradient-to-r from-transparent via-red-600/60 to-transparent" />

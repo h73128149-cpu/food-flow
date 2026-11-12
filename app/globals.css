@@ -1,15 +1,30 @@
 
 @import "tailwindcss";
 
+/* ---------- Theme Colors ---------- */
+
 :root {
   --cream: #f8f4ec;
   --cream-dark: #eee5d8;
+  --cream-soft: #fffaf2;
+
   --burgundy: #781f35;
   --burgundy-dark: #501323;
+  --burgundy-light: #9b4055;
+
   --gold: #c49a55;
+  --gold-light: #eed49e;
+
   --charcoal: #25211f;
-  --muted: #81766d;
+  --text-main: #302823;
+  --text-secondary: #685d54;
+  --muted: #75695f;
+
   --white: #fffdf9;
+  --border: #e5d9c9;
+
+  --shadow-soft: 0 8px 25px #3826190d;
+  --shadow-medium: 0 14px 35px #38261916;
 }
 
 * {
@@ -23,13 +38,15 @@ html {
 body {
   margin: 0;
   background: var(--cream);
-  color: var(--charcoal);
+  color: var(--text-main);
   font-family: Arial, sans-serif;
+  line-height: 1.7;
 }
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 
@@ -38,11 +55,18 @@ button {
   transition:
     transform .25s ease,
     box-shadow .25s ease,
-    background .25s ease;
+    background .25s ease,
+    color .25s ease,
+    border-color .25s ease;
 }
 
 button:active {
   transform: scale(.97);
+}
+
+::selection {
+  color: white;
+  background: var(--burgundy);
 }
 
 /* ---------- Animations ---------- */
@@ -52,6 +76,7 @@ button:active {
     opacity: 0;
     transform: translateY(28px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -59,24 +84,40 @@ button:active {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-12px); }
+  0%, 100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-12px);
+  }
 }
 
 @keyframes shine {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  0% {
+    background-position: -200% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
 }
 
 @keyframes pulseGlow {
   0%, 100% {
     box-shadow: 0 0 15px #c49a5520;
   }
+
   50% {
     box-shadow: 0 0 35px #c49a5560;
   }
@@ -98,10 +139,11 @@ button:active {
   animation: pulseGlow 3s ease-in-out infinite;
 }
 
-/* ---------- Main surfaces ---------- */
+/* ---------- Main Surfaces ---------- */
 
 .premium-page {
   min-height: 100vh;
+  color: var(--text-main);
   background:
     radial-gradient(ellipse at 10% 5%, #c49a5518, transparent 35%),
     radial-gradient(ellipse at 90% 30%, #781f350c, transparent 35%),
@@ -109,24 +151,26 @@ button:active {
 }
 
 .premium-card {
-  background: rgba(255, 253, 249, .88);
-  border: 1px solid #e8ddce;
+  color: var(--text-main);
+  background: rgba(255, 253, 249, .96);
+  border: 1px solid var(--border);
   border-radius: 24px;
-  box-shadow: 0 12px 35px #3826190b;
+  box-shadow: var(--shadow-soft);
   transition: transform .3s ease, box-shadow .3s ease;
 }
 
 .premium-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 22px 45px #38261918;
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-medium);
 }
 
 .premium-glass {
-  background: rgba(255, 253, 249, .78);
+  color: var(--text-main);
+  background: rgba(255, 253, 249, .88);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  border: 1px solid #ffffffa8;
-  box-shadow: 0 12px 35px #38261912;
+  border: 1px solid #ffffffb8;
+  box-shadow: var(--shadow-soft);
 }
 
 /* ---------- Hero ---------- */
@@ -135,7 +179,7 @@ button:active {
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  color: white;
+  color: #fffdf9;
   background:
     radial-gradient(circle at 80% 20%, #c49a5555, transparent 30%),
     linear-gradient(125deg, #35101c 0%, #781f35 55%, #9a3d4c 100%);
@@ -167,6 +211,7 @@ button:active {
 }
 
 .hero-title {
+  color: #fffdf9;
   font-size: clamp(2.2rem, 6vw, 4.8rem);
   line-height: 1.2;
   font-weight: 900;
@@ -188,59 +233,93 @@ button:active {
   pointer-events: none;
 }
 
-/* ---------- Buttons ---------- */
+/* ---------- Premium Buttons ---------- */
 
 .btn-premium {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  padding: 13px 24px;
-  color: white;
+  gap: 10px;
+  min-height: 48px;
+  padding: 13px 26px;
+  color: #fffdf9;
   font-weight: 800;
-  border: 0;
+  font-size: 15px;
+  border: 1px solid transparent;
   border-radius: 15px;
   background: linear-gradient(135deg, #8b2942, #591528);
-  box-shadow: 0 8px 20px #781f3530;
+  box-shadow: 0 6px 17px #781f3530;
 }
 
 .btn-premium:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 13px 28px #781f3540;
+  color: white;
+  background: linear-gradient(135deg, #9b3450, #681a30);
+  box-shadow: 0 11px 25px #781f3540;
+  transform: translateY(-2px);
+}
+
+.btn-premium:active {
+  transform: scale(.97);
 }
 
 .btn-gold {
   color: #382719;
-  background: linear-gradient(135deg, #eed49e, #bd914b);
-  box-shadow: 0 8px 20px #c49a5530;
+  background: linear-gradient(135deg, #f2dcae, #c49a55);
+  box-shadow: 0 6px 17px #c49a5530;
+}
+
+.btn-gold:hover {
+  color: #2d2015;
+  background: linear-gradient(135deg, #f7e5bd, #d3a85f);
+  box-shadow: 0 10px 24px #c49a5545;
 }
 
 .btn-outline-premium {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 11px 22px;
   color: var(--burgundy);
-  background: transparent;
-  border: 1px solid #781f3540;
+  font-weight: 800;
+  background: var(--white);
+  border: 1px solid #781f3550;
   border-radius: 14px;
-  padding: 11px 20px;
 }
 
 .btn-outline-premium:hover {
-  background: #781f3510;
+  color: white;
+  background: var(--burgundy);
+  border-color: var(--burgundy);
+  box-shadow: 0 7px 18px #781f3528;
+  transform: translateY(-2px);
 }
 
-/* ---------- Menu cards ---------- */
+.btn-premium:disabled,
+.btn-gold:disabled,
+.btn-outline-premium:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ---------- Menu Cards ---------- */
 
 .food-card {
   position: relative;
   overflow: hidden;
+  color: var(--text-main);
   background: var(--white);
   border: 1px solid #e9dfd2;
   border-radius: 23px;
-  box-shadow: 0 8px 25px #3b25120b;
+  box-shadow: var(--shadow-soft);
   transition: all .35s cubic-bezier(.2,.8,.2,1);
 }
 
 .food-card:hover {
-  transform: translateY(-8px);
+  transform: translateY(-7px);
   border-color: #c49a5580;
   box-shadow: 0 20px 42px #3b25121a;
 }
@@ -260,7 +339,7 @@ button:active {
 }
 
 .food-card:hover .food-image img {
-  transform: scale(1.08);
+  transform: scale(1.07);
 }
 
 .food-price {
@@ -268,33 +347,37 @@ button:active {
   font-weight: 900;
 }
 
+/* Add to Cart Button */
+
 .food-add {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   color: white;
-  background: var(--burgundy);
+  background: linear-gradient(135deg, #8b2942, #591528);
   border: 0;
   border-radius: 14px;
   box-shadow: 0 5px 15px #781f3530;
 }
 
 .food-add:hover {
+  color: white;
   background: var(--burgundy-dark);
-  transform: rotate(5deg) scale(1.08);
+  transform: translateY(-2px) scale(1.05);
 }
 
 /* ---------- Categories ---------- */
 
 .category-chip {
-  padding: 11px 20px;
-  color: #675b50;
+  padding: 11px 21px;
+  color: #51463e;
   background: #fffdf9;
   border: 1px solid #e7ddcf;
   border-radius: 999px;
-  font-weight: 700;
+  font-weight: 800;
   white-space: nowrap;
+  transition: all .25s ease;
 }
 
 .category-chip:hover,
@@ -303,6 +386,7 @@ button:active {
   background: var(--burgundy);
   border-color: var(--burgundy);
   box-shadow: 0 7px 18px #781f3528;
+  transform: translateY(-2px);
 }
 
 /* ---------- Inputs ---------- */
@@ -310,24 +394,42 @@ button:active {
 .premium-input {
   width: 100%;
   padding: 14px 16px;
-  color: var(--charcoal);
+  color: #302823;
   background: #fffdf9;
-  border: 1px solid #e5d9c9;
+  border: 1px solid #d9cbbb;
   border-radius: 14px;
   outline: none;
   transition: border-color .2s, box-shadow .2s;
 }
 
 .premium-input:focus {
+  color: #25211f;
   border-color: var(--gold);
   box-shadow: 0 0 0 4px #c49a5520;
 }
 
 .premium-input::placeholder {
-  color: #aa9d90;
+  color: #75695f;
+  opacity: 1;
 }
 
-/* ---------- Modals and drawers ---------- */
+select.premium-input {
+  color: #302823;
+}
+
+input,
+textarea,
+select {
+  color: var(--text-main);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+/* ---------- Modals and Drawers ---------- */
 
 .premium-overlay {
   position: fixed;
@@ -337,7 +439,7 @@ button:active {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: #1e1715a8;
+  background: #1e1715b8;
   backdrop-filter: blur(7px);
   animation: fadeIn .2s ease;
 }
@@ -347,6 +449,7 @@ button:active {
   max-height: 90vh;
   overflow-y: auto;
   padding: 25px;
+  color: var(--text-main);
   background: var(--cream);
   border: 1px solid #ffffff80;
   border-radius: 26px;
@@ -363,6 +466,7 @@ button:active {
   width: min(100%, 430px);
   overflow-y: auto;
   padding: 24px;
+  color: var(--text-main);
   background: var(--cream);
   box-shadow: 20px 0 70px #0003;
   animation: fadeUp .3s ease both;
@@ -377,7 +481,7 @@ button:active {
 }
 
 .section-subtitle {
-  color: var(--muted);
+  color: var(--text-secondary);
   line-height: 1.9;
 }
 
@@ -391,6 +495,47 @@ button:active {
 .premium-footer {
   color: #f8f4ec;
   background: linear-gradient(120deg, #2d171b, #501323);
+}
+
+/* ---------- Text Readability ---------- */
+
+.premium-page,
+.premium-card,
+.food-card,
+.premium-modal,
+.premium-drawer {
+  --local-text: #302823;
+}
+
+.premium-page {
+  color: #302823;
+}
+
+.premium-card,
+.food-card,
+.premium-modal,
+.premium-drawer {
+  color: #302823;
+}
+
+.premium-hero,
+.premium-footer {
+  color: #fffdf9;
+}
+
+.premium-hero p,
+.premium-footer p {
+  color: #f4e9df;
+}
+
+/* ---------- Focus Accessibility ---------- */
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 3px solid #c49a5580;
+  outline-offset: 3px;
 }
 
 /* ---------- Mobile ---------- */
@@ -413,7 +558,16 @@ button:active {
     padding: 19px;
     border-radius: 22px;
   }
+
+  .btn-premium,
+  .btn-gold,
+  .btn-outline-premium {
+    min-height: 46px;
+    padding: 11px 19px;
+  }
 }
+
+/* ---------- Reduced Motion ---------- */
 
 @media (prefers-reduced-motion: reduce) {
   *,
