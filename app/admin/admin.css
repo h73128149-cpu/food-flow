@@ -1,0 +1,67 @@
+/* FoodFlow Admin only — deliberately isolated from the customer storefront. */
+.ff-admin-root {
+  --background: #111114;
+  --foreground: #f6f0e7;
+  --surface: #1b1b20;
+  --muted: #b6abb0;
+  --line: rgba(226, 203, 166, .17);
+  --red: #8b2942;
+  --cream: #f6f0e7;
+  --gold: #d5b36b;
+  color: var(--foreground);
+  background: #101012;
+  min-height: 100vh;
+}
+.ff-admin-root, .ff-admin-root * { box-sizing: border-box; }
+.ff-admin-root button { -webkit-tap-highlight-color: transparent; }
+.ff-admin-root button:focus-visible,
+.ff-admin-root input:focus-visible,
+.ff-admin-root select:focus-visible,
+.ff-admin-root textarea:focus-visible {
+  outline: 2px solid #d5b36b !important;
+  outline-offset: 2px;
+}
+.ff-admin-root ::selection { background: #8b2942; color: #fff; }
+.ff-admin-module { color: #f6f0e7; background: #151518; border-color: rgba(226,203,166,.14); }
+.ff-admin-module main {
+  min-height: 0 !important;
+  color: #f6f0e7 !important;
+  background: transparent !important;
+}
+.ff-admin-module h1,.ff-admin-module h2,.ff-admin-module h3,
+.ff-admin-module h4,.ff-admin-module label { color: #f6f0e7; }
+.ff-admin-module p { color: #bcb2b6; }
+.ff-admin-module section,
+.ff-admin-module article,
+.ff-admin-module [class*="bg-[var(--surface)]"] {
+  border-color: rgba(226,203,166,.16);
+}
+.ff-admin-module input:not([type="checkbox"]),
+.ff-admin-module textarea,
+.ff-admin-module select {
+  color: #f8f2e9 !important;
+  background: #202025 !important;
+  border-color: rgba(226,203,166,.22) !important;
+}
+.ff-admin-module input::placeholder,
+.ff-admin-module textarea::placeholder { color: #a99da2 !important; opacity: 1; }
+.ff-admin-module option { color: #f8f2e9; background: #202025; }
+.ff-admin-module input[type="checkbox"] { accent-color: #c49a55; }
+.ff-admin-module button { transition: background-color .18s ease, border-color .18s ease, transform .18s ease; }
+.ff-admin-module button:active { transform: scale(.98); }
+.ff-admin-module button:disabled { opacity: .55; cursor: not-allowed; }
+/* Keep the menu page's old CSS-variable-based components in the same dark palette. */
+.ff-admin-module .text-\[var\(--muted\)\] { color: #b6abb0 !important; }
+.ff-admin-module .text-\[var\(--red\)\] { color: #e2b6a5 !important; }
+.ff-admin-module .bg-\[var\(--background\)\] { background: #202025 !important; }
+.ff-admin-module .bg-\[var\(--surface\)\] { background: #1c1c21 !important; }
+.ff-admin-module .border-\[var\(--line\)\] { border-color: rgba(226,203,166,.18) !important; }
+.ff-admin-module .bg-\[var\(--red\)\] { background: #85283e !important; }
+.ff-admin-module .text-\[var\(--foreground\)\] { color: #f6f0e7 !important; }
+@media (max-width: 640px) {
+  .ff-admin-root { overflow-x: hidden; }
+  .ff-admin-root header { backdrop-filter: blur(16px); }
+  .ff-admin-module { border-radius: 18px; padding: 10px; }
+  .ff-admin-module main { padding: 8px !important; }
+  .ff-admin-module button { min-height: 40px; }
+}
