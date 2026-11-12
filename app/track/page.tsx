@@ -71,7 +71,7 @@ function getStatus(status: string) {
 
 export default function TrackOrderPage() {
   const [orderNumber, setOrderNumber] = useState("");
-  const [phone, setPhone] = useState("");
+  const [trackingToken, setTrackingToken] = useState("");
   const [order, setOrder] = useState<TrackedOrder | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -80,7 +80,7 @@ export default function TrackOrderPage() {
   const fetchOrder = useCallback(
     async (showError = true) => {
       const cleanOrderNumber = orderNumber.trim();
-      const cleanPhone = phone.trim();
+      const cleanToken = trackingToken.trim();
 
       const supabase = createClient();
 
@@ -88,7 +88,7 @@ export default function TrackOrderPage() {
         "track_foodflow_order",
         {
           p_order_number: cleanOrderNumber,
-          p_customer_phone: cleanPhone,
+          p_tracking_token: cleanToken,
         }
       );
 
@@ -102,7 +102,7 @@ export default function TrackOrderPage() {
       if (!data) {
         if (showError) {
           setOrder(null);
-          setError("سفارشی با این شماره سفارش و موبایل پیدا نشد.");
+          setError("سفارشی با این شماره سفارش و کد پیگیری پیدا نشد.");
         }
         return;
       }
@@ -111,7 +111,7 @@ export default function TrackOrderPage() {
       setLastUpdated(new Date());
       setError("");
     },
-    [orderNumber, phone]
+    [orderNumber, trackingToken]
   );
 
   async function trackOrder(e: React.FormEvent<HTMLFormElement>) {
@@ -121,15 +121,15 @@ export default function TrackOrderPage() {
     setOrder(null);
     setLastUpdated(null);
 
-    const cleanPhone = phone.trim();
+    const cleanToken = trackingToken.trim();
 
     if (!orderNumber.trim()) {
       setError("شماره سفارش را وارد کن.");
       return;
     }
 
-    if (!/^09[0-9]{9}$/.test(cleanPhone)) {
-      setError("شماره موبایل باید ۱۱ رقم و با 09 شروع شود.");
+    if (!/^[0-9a-fA-F-]{36}$/.test(cleanToken)) {
+      setError("کد پیگیری معتبر نیست.");
       return;
     }
 
@@ -199,17 +199,15 @@ export default function TrackOrderPage() {
 
             <div>
               <label className="mb-2 block text-sm font-bold text-gray-300">
-                شماره موبایل ثبت‌شده در سفارش
+                کد محرمانه پیگیری
               </label>
-
               <input
-                type="tel"
-                inputMode="numeric"
+                type="text"
                 dir="ltr"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="09123456789"
-                maxLength={11}
+                value={trackingToken}
+                onChange={(e) => setTrackingToken(e.target.value)}
+                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                maxLength={36}
                 className="w-full rounded-xl border border-white/10 bg-[#0d0e11] px-4 py-4 text-left text-white outline-none transition placeholder:text-gray-600 focus:border-[#c9a85c]"
                 required
               />

@@ -72,7 +72,7 @@ export default function Home() {
   const [trackLoading, setTrackLoading] = useState(false);
   const [trackError, setTrackError] = useState("");
   const [savedOrderNumber, setSavedOrderNumber] = useState("");
-  const [savedCustomerPhone, setSavedCustomerPhone] = useState("");
+  const [savedTrackingToken, setSavedTrackingToken] = useState("");
   const [lastUpdated, setLastUpdated] = useState("");
 
   // راهنمای انتخاب غذا؛ پاسخ‌ها فقط در حافظه همین صفحه نگهداری می‌شوند.
@@ -170,10 +170,10 @@ export default function Home() {
   useEffect(() => {
     try {
       const savedName = localStorage.getItem("foodflow_customer_name") ?? "";
-      const savedPhone = localStorage.getItem("foodflow_customer_phone") ?? "";
+      const savedToken = localStorage.getItem("foodflow_tracking_token") ?? "";
       const savedNumber = localStorage.getItem("foodflow_last_order_number") ?? "";
       setCustomerName(savedName);
-      setSavedCustomerPhone(savedPhone);
+      setSavedTrackingToken(savedToken);
       setSavedOrderNumber(savedNumber);
     } catch (error) {
       console.warn("Could not restore customer details:", error);
@@ -430,19 +430,21 @@ export default function Home() {
       const result = data as {
         success?: boolean;
         order_number?: string;
+        tracking_token?: string;
       };
 
-      if (!result?.success || !result.order_number) {
-        throw new Error("Invalid order response");
+      if (!result?.success || !result.order_number || !result.tracking_token) {
+        throw new Error("Invalid order response: missing tracking credentials");
       }
 
       setOrderNumber(result.order_number);
       setSavedOrderNumber(result.order_number);
-      setSavedCustomerPhone("");
+      setSavedTrackingToken(result.tracking_token);
       try {
         localStorage.setItem("foodflow_customer_name", customerName.trim());
-        localStorage.removeItem("foodflow_customer_phone");
         localStorage.setItem("foodflow_last_order_number", result.order_number);
+        localStorage.setItem("foodflow_tracking_token", result.tracking_token);
+        localStorage.removeItem("foodflow_customer_phone");
       } catch (storageError) {
         console.warn("Could not save order details in this browser:", storageError);
       }
@@ -471,7 +473,7 @@ export default function Home() {
   }
 
   async function fetchTrackedOrder() {
-    if (!savedOrderNumber || !savedCustomerPhone) {
+    if (!savedOrderNumber || !savedTrackingToken) {
       setTrackError(
         t(
           "هنوز سفارشی در این مرورگر ثبت نشده است. ابتدا سفارش خود را ثبت کن.",
@@ -486,7 +488,7 @@ export default function Home() {
     try {
       const { data, error } = await supabase.rpc("track_foodflow_order", {
         p_order_number: savedOrderNumber,
-        p_customer_phone: savedCustomerPhone,
+        p_tracking_token: savedTrackingToken,
       });
 
       if (error) throw error;
@@ -511,7 +513,7 @@ export default function Home() {
   }
 
   useEffect(() => {
-    if (!trackOpen || !savedOrderNumber || !savedCustomerPhone) return;
+    if (!trackOpen || !savedOrderNumber || !savedTrackingToken) return;
 
     void fetchTrackedOrder();
     const timer = window.setInterval(() => {
@@ -521,7 +523,7 @@ export default function Home() {
     return () => window.clearInterval(timer);
     // fetchTrackedOrder intentionally uses the saved order credentials.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trackOpen, savedOrderNumber, savedCustomerPhone]);
+  }, [trackOpen, savedOrderNumber, savedTrackingToken]);
 
   function formatDateTime(value: string | null) {
     if (!value) return "";
@@ -1694,6 +1696,12 @@ export default function Home() {
                   <p dir="ltr" className="text-4xl font-black text-[#a77b35]">
                     {orderNumber}
                   </p>
+                  <p className="mt-4 mb-2 text-sm text-[#887b72]">
+                    {t("کد محرمانه پیگیری؛ آن را نگه دار", "PRIVATE TRACKING CODE — KEEP IT SAFE")}
+                  </p>
+                  <p dir="ltr" className="break-all text-lg font-bold tracking-wider text-[#a77b35]">
+                    {savedTrackingToken}
+                  </p>
                 </div>
 
                 <button
@@ -1747,7 +1755,7 @@ export default function Home() {
             </div>
 
             <div className="space-y-5 p-5 sm:p-6">
-              {savedOrderNumber && savedCustomerPhone ? (
+              {savedOrderNumber && savedTrackingToken ? (
                 <>
                   <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#e8dfd4] bg-[#f8f2ea] p-4">
                     <div>
@@ -1824,7 +1832,7 @@ export default function Home() {
                   <div className="mb-3 text-5xl">📦</div>
                   <h3 className="font-black">{t("هنوز سفارشی ثبت نکردی", "No order yet")}</h3>
                   <p className="mt-2 text-sm leading-7 text-[#887b72]">
-                    {t("بعد از ثبت سفارش، شماره و اطلاعات پیگیری به‌صورت خودکار در همین مرورگر ذخیره می‌شود و دیگر نیازی به وارد کردن دوباره شماره موبایل نیست.", "After placing an order, its tracking details are saved in this browser. You won't need to enter your phone number again.")}
+                    {t("بعد از ثبت سفارش، شماره و اطلاعات پیگیری به‌صورت خودکار در همین مرورگر ذخیره می‌شود و دیگر نیازی به وارد کردن دوباره شماره موبایل نیست.", "After placing an order, its tracking details are saved in this browser. Use your private tracking code to view this order.")}
                   </p>
                   <button
                     type="button"
@@ -1845,7 +1853,7 @@ export default function Home() {
                 </div>
               )}
 
-              {savedOrderNumber && savedCustomerPhone && (
+              {savedOrderNumber && savedTrackingToken && (
                 <button
                   type="button"
                   onClick={() => void fetchTrackedOrder()}

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -14,30 +15,49 @@ type Food = {
   name: string;
   description: string | null;
   price: number;
+  price_one_person: number | null;
+  price_two_person: number | null;
+  price_three_person: number | null;
+  has_sizes: boolean;
   category_id: string | null;
   is_active: boolean;
   is_available: boolean;
 };
 
+type FoodForm = {
+  name: string;
+  description: string;
+  price: string;
+  price_one_person: string;
+  price_two_person: string;
+  price_three_person: string;
+  has_sizes: boolean;
+  category_id: string;
+};
+
 const restaurantId = "48e90063-e96f-45d2-92fb-25b3ce34dda9";
 
-const emptyForm = {
+const emptyForm: FoodForm = {
   name: "",
   description: "",
   price: "",
+  price_one_person: "",
+  price_two_person: "",
+  price_three_person: "",
+  has_sizes: false,
   category_id: "",
 };
 
 export function AdminMenuPanel() {
   const supabase = createClient();
-  const { language, theme, t } = useApp();
+  const { language } = useApp();
 
   const [foods, setFoods] = useState<Food[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState<FoodForm>(emptyForm);
   const [showForm, setShowForm] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -51,7 +71,7 @@ export function AdminMenuPanel() {
       supabase
         .from("foods")
         .select(
-          "id, name, description, price, category_id, is_active, is_available"
+          "id, name, description, price, price_one_person, price_two_person, price_three_person, has_sizes, category_id, is_active, is_available"
         )
         .eq("restaurant_id", restaurantId)
         .order("created_at", { ascending: false }),
@@ -71,7 +91,7 @@ export function AdminMenuPanel() {
           : "Could not load data. Check connection and permissions."
       );
     } else {
-      setFoods(foodsResult.data || []);
+      setFoods((foodsResult.data || []) as Food[]);
       setCategories(categoriesResult.data || []);
     }
 
@@ -91,12 +111,18 @@ export function AdminMenuPanel() {
 
   const openEditForm = (food: Food) => {
     setEditingId(food.id);
+
     setForm({
       name: food.name,
       description: food.description || "",
-      price: String(food.price),
+      price: String(food.price ?? ""),
+      price_one_person: String(food.price_one_person ?? ""),
+      price_two_person: String(food.price_two_person ?? ""),
+      price_three_person: String(food.price_three_person ?? ""),
+      has_sizes: food.has_sizes,
       category_id: food.category_id || "",
     });
+
     setMessage("");
     setShowForm(true);
   };
@@ -104,11 +130,57 @@ export function AdminMenuPanel() {
   const saveFood = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const price = Number(form.price);
-
-    if (!form.name.trim() || !form.price.trim() || !Number.isFinite(price) || price <= 0) {
-      setMessage(isFa ? "نام و قیمت معتبر را وارد کنید." : "Enter a valid name and price.");
+    if (!form.name.trim()) {
+      setMessage(isFa ? "نام غذا را وارد کنید." : "Enter the food name.");
       return;
+    }
+
+    let price = 0;
+    let priceOne: number | null = null;
+    let priceTwo: number | null = null;
+    let priceThree: number | null = null;
+
+    if (form.has_sizes) {
+      priceOne = Number(form.price_one_person);
+      priceTwo = Number(form.price_two_person);
+      priceThree = Number(form.price_three_person);
+
+      const validPrices = [priceOne, priceTwo, priceThree].every(
+        (value) =>
+          Number.isFinite(value) &&
+          Number.isInteger(value) &&
+          value > 0
+      );
+
+      if (!validPrices) {
+        setMessage(
+          isFa
+            ? "قیمت هر سه اندازه را به‌صورت عدد صحیح و بیشتر از صفر وارد کنید."
+            : "Enter valid positive whole-number prices for all three sizes."
+        );
+        return;
+      }
+
+      // حفظ سازگاری با ستون قدیمی price
+      price = priceTwo;
+    } else {
+      const normalPrice = Number(form.price);
+
+      if (
+        !form.price.trim() ||
+        !Number.isFinite(normalPrice) ||
+        !Number.isInteger(normalPrice) ||
+        normalPrice <= 0
+      ) {
+        setMessage(
+          isFa
+            ? "قیمت معتبر و بیشتر از صفر وارد کنید."
+            : "Enter a valid price greater than zero."
+        );
+        return;
+      }
+
+      price = normalPrice;
     }
 
     setSaving(true);
@@ -118,12 +190,20 @@ export function AdminMenuPanel() {
       restaurant_id: restaurantId,
       name: form.name.trim(),
       description: form.description.trim() || null,
-      price: Math.round(price),
+      price,
+      has_sizes: form.has_sizes,
+      price_one_person: priceOne,
+      price_two_person: priceTwo,
+      price_three_person: priceThree,
       category_id: form.category_id || null,
     };
 
     const result = editingId
-      ? await supabase.from("foods").update(foodData).eq("id", editingId).eq("restaurant_id", restaurantId)
+      ? await supabase
+          .from("foods")
+          .update(foodData)
+          .eq("id", editingId)
+          .eq("restaurant_id", restaurantId)
       : await supabase.from("foods").insert({
           ...foodData,
           is_active: true,
@@ -137,7 +217,12 @@ export function AdminMenuPanel() {
           : `Save failed: ${result.error.message}`
       );
     } else {
-      setMessage(isFa ? "اطلاعات غذا با موفقیت ذخیره شد." : "Food saved successfully.");
+      setMessage(
+        isFa
+          ? "اطلاعات غذا با موفقیت ذخیره شد."
+          : "Food saved successfully."
+      );
+
       setShowForm(false);
       setEditingId(null);
       setForm(emptyForm);
@@ -171,8 +256,8 @@ export function AdminMenuPanel() {
     }
   };
 
-  const formatPrice = (price: number) =>
-    `${new Intl.NumberFormat(isFa ? "fa-IR" : "en-US").format(price)} ${
+  const formatPrice = (price: number | null) =>
+    `${new Intl.NumberFormat(isFa ? "fa-IR" : "en-US").format(price ?? 0)} ${
       isFa ? "تومان" : "Toman"
     }`;
 
@@ -182,11 +267,15 @@ export function AdminMenuPanel() {
 
   const panelClass =
     "rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-sm";
+
   const inputClass =
     "w-full rounded-xl border border-[var(--line)] bg-[var(--background)] px-3 py-3 text-[var(--foreground)] outline-none focus:border-[var(--red)]";
 
   return (
-    <main dir={isFa ? "rtl" : "ltr"} className="min-h-screen bg-[var(--background)] p-4 text-[var(--foreground)] md:p-8">
+    <main
+      dir={isFa ? "rtl" : "ltr"}
+      className="min-h-screen bg-[var(--background)] p-4 text-[var(--foreground)] md:p-8"
+    >
       <div className="mx-auto max-w-6xl space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -194,7 +283,9 @@ export function AdminMenuPanel() {
               {isFa ? "مدیریت منو و غذاها" : "Menu Management"}
             </h1>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              {isFa ? "افزودن، ویرایش و مدیریت وضعیت غذاها" : "Add, edit and manage food items"}
+              {isFa
+                ? "افزودن، ویرایش و مدیریت وضعیت غذاها"
+                : "Add, edit and manage food items"}
             </p>
           </div>
 
@@ -216,59 +307,177 @@ export function AdminMenuPanel() {
           <section className={panelClass}>
             <h2 className="mb-4 text-lg font-bold">
               {editingId
-                ? isFa ? "ویرایش غذا" : "Edit Food"
-                : isFa ? "افزودن غذای جدید" : "Add New Food"}
+                ? isFa
+                  ? "ویرایش غذا"
+                  : "Edit Food"
+                : isFa
+                  ? "افزودن غذای جدید"
+                  : "Add New Food"}
             </h2>
 
             <form onSubmit={saveFood} className="grid gap-4 md:grid-cols-2">
               <label className="space-y-2">
-                <span className="text-sm">{isFa ? "نام غذا" : "Food name"}</span>
+                <span className="text-sm">
+                  {isFa ? "نام غذا" : "Food name"}
+                </span>
                 <input
                   className={inputClass}
                   value={form.name}
-                  onChange={(event) => setForm({ ...form, name: event.target.value })}
+                  onChange={(event) =>
+                    setForm({ ...form, name: event.target.value })
+                  }
                   required
-                  placeholder={isFa ? "مثلاً چیزبرگر مخصوص" : "e.g. Cheeseburger"}
+                  placeholder={
+                    isFa ? "مثلاً پیتزا مخصوص" : "e.g. Special Pizza"
+                  }
                 />
               </label>
 
               <label className="space-y-2">
-                <span className="text-sm">{isFa ? "قیمت به تومان" : "Price in Toman"}</span>
-                <input
-                  className={inputClass}
-                  type="number"
-                  min="1"
-                  value={form.price}
-                  onChange={(event) => setForm({ ...form, price: event.target.value })}
-                  required
-                />
-              </label>
-
-              <label className="space-y-2 md:col-span-2">
-                <span className="text-sm">{isFa ? "توضیحات" : "Description"}</span>
-                <textarea
-                  className={inputClass}
-                  rows={3}
-                  value={form.description}
-                  onChange={(event) => setForm({ ...form, description: event.target.value })}
-                  placeholder={isFa ? "توضیحات غذا..." : "Food description..."}
-                />
-              </label>
-
-              <label className="space-y-2 md:col-span-2">
-                <span className="text-sm">{isFa ? "دسته‌بندی" : "Category"}</span>
+                <span className="text-sm">
+                  {isFa ? "دسته‌بندی" : "Category"}
+                </span>
                 <select
                   className={inputClass}
                   value={form.category_id}
-                  onChange={(event) => setForm({ ...form, category_id: event.target.value })}
+                  onChange={(event) =>
+                    setForm({ ...form, category_id: event.target.value })
+                  }
                 >
-                  <option value="">{isFa ? "بدون دسته‌بندی" : "Uncategorized"}</option>
+                  <option value="">
+                    {isFa ? "بدون دسته‌بندی" : "Uncategorized"}
+                  </option>
                   {categories.map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.name}
                     </option>
                   ))}
                 </select>
+              </label>
+
+              <label className="flex items-center gap-3 rounded-xl border border-[var(--line)] p-3 md:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={form.has_sizes}
+                  onChange={(event) =>
+                    setForm({
+                      ...form,
+                      has_sizes: event.target.checked,
+                    })
+                  }
+                  className="h-5 w-5 accent-[var(--red)]"
+                />
+                <span className="font-medium">
+                  {isFa
+                    ? "این غذا دارای اندازه‌های یک‌نفره، دونفره و سه‌نفره است"
+                    : "This food has one-person, two-person and three-person sizes"}
+                </span>
+              </label>
+
+              {form.has_sizes ? (
+                <div className="grid gap-4 rounded-xl border border-[var(--line)] p-4 md:col-span-2 md:grid-cols-3">
+                  <h3 className="font-bold md:col-span-3">
+                    {isFa ? "قیمت اندازه‌های غذا" : "Size prices"}
+                  </h3>
+
+                  <label className="space-y-2">
+                    <span className="text-sm">
+                      {isFa ? "قیمت یک‌نفره (تومان)" : "One-person price"}
+                    </span>
+                    <input
+                      className={inputClass}
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={form.price_one_person}
+                      onChange={(event) =>
+                        setForm({
+                          ...form,
+                          price_one_person: event.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label className="space-y-2">
+                    <span className="text-sm">
+                      {isFa ? "قیمت دونفره (تومان)" : "Two-person price"}
+                    </span>
+                    <input
+                      className={inputClass}
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={form.price_two_person}
+                      onChange={(event) =>
+                        setForm({
+                          ...form,
+                          price_two_person: event.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label className="space-y-2">
+                    <span className="text-sm">
+                      {isFa ? "قیمت سه‌نفره (تومان)" : "Three-person price"}
+                    </span>
+                    <input
+                      className={inputClass}
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={form.price_three_person}
+                      onChange={(event) =>
+                        setForm({
+                          ...form,
+                          price_three_person: event.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </label>
+
+                  <p className="text-xs text-[var(--muted)] md:col-span-3">
+                    {isFa
+                      ? "قیمت دونفره به‌عنوان قیمت اصلی قدیمی غذا نیز ذخیره می‌شود."
+                      : "The two-person price is also saved as the legacy food price."}
+                  </p>
+                </div>
+              ) : (
+                <label className="space-y-2 md:col-span-2">
+                  <span className="text-sm">
+                    {isFa ? "قیمت به تومان" : "Price in Toman"}
+                  </span>
+                  <input
+                    className={inputClass}
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={form.price}
+                    onChange={(event) =>
+                      setForm({ ...form, price: event.target.value })
+                    }
+                    required
+                  />
+                </label>
+              )}
+
+              <label className="space-y-2 md:col-span-2">
+                <span className="text-sm">
+                  {isFa ? "توضیحات" : "Description"}
+                </span>
+                <textarea
+                  className={inputClass}
+                  rows={3}
+                  value={form.description}
+                  onChange={(event) =>
+                    setForm({ ...form, description: event.target.value })
+                  }
+                  placeholder={isFa ? "توضیحات غذا..." : "Food description..."}
+                />
               </label>
 
               <div className="flex flex-wrap gap-3 md:col-span-2">
@@ -278,8 +487,12 @@ export function AdminMenuPanel() {
                   type="submit"
                 >
                   {saving
-                    ? isFa ? "در حال ذخیره..." : "Saving..."
-                    : isFa ? "ذخیره غذا" : "Save Food"}
+                    ? isFa
+                      ? "در حال ذخیره..."
+                      : "Saving..."
+                    : isFa
+                      ? "ذخیره غذا"
+                      : "Save Food"}
                 </button>
 
                 <button
@@ -322,15 +535,35 @@ export function AdminMenuPanel() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <h3 className="font-bold">{food.name}</h3>
+
                       <p className="mt-1 text-sm text-[var(--muted)]">
                         {categoryName(food.category_id)}
                       </p>
+
                       {food.description && (
                         <p className="mt-2 text-sm">{food.description}</p>
                       )}
-                      <p className="mt-2 font-bold text-[var(--red)]">
-                        {formatPrice(food.price)}
-                      </p>
+
+                      {food.has_sizes ? (
+                        <div className="mt-3 space-y-1 text-sm">
+                          <p className="font-bold text-[var(--red)]">
+                            {isFa ? "قیمت یک‌نفره: " : "One-person: "}
+                            {formatPrice(food.price_one_person)}
+                          </p>
+                          <p className="font-bold text-[var(--red)]">
+                            {isFa ? "قیمت دونفره: " : "Two-person: "}
+                            {formatPrice(food.price_two_person)}
+                          </p>
+                          <p className="font-bold text-[var(--red)]">
+                            {isFa ? "قیمت سه‌نفره: " : "Three-person: "}
+                            {formatPrice(food.price_three_person)}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="mt-2 font-bold text-[var(--red)]">
+                          {formatPrice(food.price)}
+                        </p>
+                      )}
                     </div>
 
                     <button
@@ -347,10 +580,16 @@ export function AdminMenuPanel() {
                         type="checkbox"
                         checked={food.is_active}
                         onChange={(event) =>
-                          updateFoodStatus(food, "is_active", event.target.checked)
+                          updateFoodStatus(
+                            food,
+                            "is_active",
+                            event.target.checked
+                          )
                         }
                       />
-                      {isFa ? "نمایش در منوی مشتری" : "Visible in customer menu"}
+                      {isFa
+                        ? "نمایش در منوی مشتری"
+                        : "Visible in customer menu"}
                     </label>
 
                     <label className="flex items-center gap-2 text-sm">
@@ -359,7 +598,11 @@ export function AdminMenuPanel() {
                         checked={food.is_available}
                         disabled={!food.is_active}
                         onChange={(event) =>
-                          updateFoodStatus(food, "is_available", event.target.checked)
+                          updateFoodStatus(
+                            food,
+                            "is_available",
+                            event.target.checked
+                          )
                         }
                       />
                       {isFa ? "قابل سفارش" : "Available to order"}
@@ -368,13 +611,17 @@ export function AdminMenuPanel() {
 
                   {!food.is_active && (
                     <p className="mt-3 text-xs text-[var(--muted)]">
-                      {isFa ? "این غذا از منوی مشتری مخفی است." : "This item is hidden from customers."}
+                      {isFa
+                        ? "این غذا از منوی مشتری مخفی است."
+                        : "This item is hidden from customers."}
                     </p>
                   )}
 
                   {food.is_active && !food.is_available && (
                     <p className="mt-3 text-xs text-[var(--muted)]">
-                      {isFa ? "این غذا نمایش داده می‌شود اما قابل سفارش نیست." : "Visible but unavailable for ordering."}
+                      {isFa
+                        ? "این غذا نمایش داده می‌شود اما قابل سفارش نیست."
+                        : "Visible but unavailable for ordering."}
                     </p>
                   )}
                 </article>
