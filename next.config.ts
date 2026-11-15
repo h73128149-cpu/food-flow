@@ -1,9 +1,20 @@
+
 import type { NextConfig } from "next";
 
+const isGitHubPages = process.env.GITHUB_ACTIONS === "true";
+
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
+  output: "export",
+  trailingSlash: true,
+  images: {
+    unoptimized: true,
+  },
+  ...(isGitHubPages
+    ? {
+        basePath: "/food-flow",
+        assetPrefix: "/food-flow/",
+      }
+    : {}),
   turbopack: {
     rules: {
       "*.css": {
